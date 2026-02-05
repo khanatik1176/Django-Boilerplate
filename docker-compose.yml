@@ -1,0 +1,62 @@
+services:
+  db_backup_system:
+    build: .
+    container_name: django_web
+    # command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:5000
+    volumes:
+      - .:/app
+      - ./backups_storage:/app/backups_storage
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      # - db
+      - redis
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+      - ./backups_storage:/app/backups_storage
+    env_file:
+      - .env
+    depends_on:
+      # - db
+      - redis
+
+  celery_beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A config beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      # - db
+      - redis
+
+  # db:
+  #   image: postgres:16
+  #   container_name: postgres_db
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+# volumes:
+#   postgres_data:
